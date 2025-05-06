@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gestión de Estudiantes</title>
+  <link rel="stylesheet" href="css/w3.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="w3-container">
+  <h2 class="w3-center">Estudiantes</h2>
+
+  <form id="studentForm" class="w3-card-4 w3-padding w3-margin-bottom">
+    <input type="hidden" name="id" id="studentId" />
+    <label>Nombre completo</label>
+    <input class="w3-input" type="text" name="fullname" id="fullname" required />
+    <label>Email</label>
+    <input class="w3-input" type="email" name="email" id="email" required />
+    <label>Edad</label>
+    <input class="w3-input" type="number" name="age" id="age" required />
+    <br />
+    <button type="submit" class="w3-button w3-blue">Guardar</button>
+    <button type="reset" class="w3-button w3-gray" id="cancelEdit">Cancelar</button>
+  </form>
+
+  <table class="w3-table-all">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Edad</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="studentsTableBody"></tbody>
+  </table>
+
+  <script src="js/frontDispatcher.js"></script>
+</body>
+</html>
