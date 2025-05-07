@@ -1,141 +1,129 @@
-// frontend/js/frontDispatcher.js
-
+//frontDispatcher_2.0
 const API_URL = '../backend/server.php';
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadStudents();
-  setupFormHandler();
-});
+document.addEventListener('DOMContentLoaded', () => 
+{
+    const studentForm = document.getElementById('studentForm');
+    const studentTableBody = document.getElementById('studentTableBody');
+    const fullnameInput = document.getElementById('fullname');
+    const emailInput = document.getElementById('email');
+    const ageInput = document.getElementById('age');
+    const studentIdInput = document.getElementById('studentId');
 
-// === API ===
-const studentAPI = {
-  async fetchAll() {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error("No se pudieron obtener los estudiantes");
-    return await res.json();
-  },
+    // Leer todos los estudiantes al cargar
+    fetchStudents();
 
-  async create(student) {
-    return await sendJSON('POST', student);
-  },
+    // Formulario: Crear o actualizar estudiante
+    studentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-  async update(student) {
-    return await sendJSON('PUT', student);
-  },
+        const formData = {
+            fullname: fullnameInput.value,
+            email: emailInput.value,
+            age: ageInput.value,
+        };
 
-  async remove(id) {
-    return await sendJSON('DELETE', { id });
-  }
-};
+        const id = studentIdInput.value;
+        const method = id ? 'PUT' : 'POST';
+        if (id) formData.id = id;
 
-async function sendJSON(method, data) {
-  const res = await fetch(API_URL, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) throw new Error(`Error en ${method}`);
-  return await res.json();
-}
+        try 
+        {
+            const response = await fetch(API_URL, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData),
+            });
 
-// === UI ===
-function setupFormHandler() {
-  const form = document.getElementById('studentForm');
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const student = getFormData();
+            if (response.ok) {
+                studentForm.reset();
+                studentIdInput.value = '';
+                await fetchStudents();
+            } else {
+                alert("Error al guardar");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    });
 
-    try {
-      if (student.id) {
-        await studentAPI.update(student);
-      } else {
-        await studentAPI.create(student);
-      }
-      clearForm();
-      loadStudents();
-    } catch (err) {
-      console.error(err.message);
+    // Obtener estudiantes y renderizar tabla
+    async function fetchStudents() 
+    {
+        try 
+        {
+            const res = await fetch(API_URL);
+            const students = await res.json();
+
+            //Limpiar tabla de forma segura.
+            studentTableBody.replaceChildren();
+            //acá innerHTML es seguro a XSS porque no hay entrada de usuario
+            //igual no lo uso.
+            //studentTableBody.innerHTML = "";
+
+            students.forEach(student => {
+                const tr = document.createElement('tr');
+
+                const tdName = document.createElement('td');
+                tdName.textContent = student.fullname;
+
+                const tdEmail = document.createElement('td');
+                tdEmail.textContent = student.email;
+
+                const tdAge = document.createElement('td');
+                tdAge.textContent = student.age;
+
+                const tdActions = document.createElement('td');
+                const editBtn = document.createElement('button');
+                editBtn.textContent = 'Editar';
+                editBtn.classList.add('w3-button', 'w3-blue', 'w3-small', 'w3-margin-right');
+                editBtn.onclick = () => {
+                    fullnameInput.value = student.fullname;
+                    emailInput.value = student.email;
+                    ageInput.value = student.age;
+                    studentIdInput.value = student.id;
+                };
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Borrar';
+                deleteBtn.classList.add('w3-button', 'w3-red', 'w3-small');
+                deleteBtn.onclick = () => deleteStudent(student.id);
+
+                tdActions.appendChild(editBtn);
+                tdActions.appendChild(deleteBtn);
+
+                tr.appendChild(tdName);
+                tr.appendChild(tdEmail);
+                tr.appendChild(tdAge);
+                tr.appendChild(tdActions);
+
+                studentTableBody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error("Error al obtener estudiantes:", err);
+        }
     }
-  });
-}
 
-function getFormData() {
-  return {
-    id: document.getElementById('studentId').value.trim(),
-    fullname: document.getElementById('fullname').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    age: parseInt(document.getElementById('age').value.trim(), 10)
-  };
-}
+    // Eliminar estudiante
+    async function deleteStudent(id) 
+    {
+        if (!confirm("¿Seguro que querés borrar este estudiante?")) return;
 
-function clearForm() {
-  document.getElementById('studentForm').reset();
-  document.getElementById('studentId').value = '';
-}
+        try 
+        {
+            const response = await fetch(API_URL, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
 
-async function loadStudents() {
-  try {
-    const students = await studentAPI.fetchAll();
-    renderStudentTable(students);
-  } catch (err) {
-    console.error('Error cargando estudiantes:', err.message);
-  }
-}
-
-function renderStudentTable(students) {
-  const tbody = document.getElementById('studentTableBody');
-  tbody.replaceChildren(); // limpia seguro
-
-  students.forEach(student => {
-    const tr = document.createElement('tr');
-
-    tr.appendChild(createCell(student.fullname));
-    tr.appendChild(createCell(student.email));
-    tr.appendChild(createCell(student.age.toString()));
-    tr.appendChild(createActionsCell(student));
-
-    tbody.appendChild(tr);
-  });
-}
-
-function createCell(text) {
-  const td = document.createElement('td');
-  td.textContent = text;
-  return td;
-}
-
-function createActionsCell(student) {
-  const td = document.createElement('td');
-
-  const editBtn = document.createElement('button');
-  editBtn.textContent = 'Editar';
-  editBtn.className = 'w3-button w3-blue w3-small';
-  editBtn.addEventListener('click', () => fillForm(student));
-
-  const deleteBtn = document.createElement('button');
-  deleteBtn.textContent = 'Borrar';
-  deleteBtn.className = 'w3-button w3-red w3-small w3-margin-left';
-  deleteBtn.addEventListener('click', () => confirmDelete(student.id));
-
-  td.appendChild(editBtn);
-  td.appendChild(deleteBtn);
-  return td;
-}
-
-function fillForm(student) {
-  document.getElementById('studentId').value = student.id;
-  document.getElementById('fullname').value = student.fullname;
-  document.getElementById('email').value = student.email;
-  document.getElementById('age').value = student.age;
-}
-
-async function confirmDelete(id) {
-  if (!confirm('¿Estás seguro que deseas borrar este estudiante?')) return;
-
-  try {
-    await studentAPI.remove(id);
-    loadStudents();
-  } catch (err) {
-    console.error('Error al borrar:', err.message);
-  }
-}
+            if (response.ok) {
+                await fetchStudents();
+            } else {
+                alert("Error al borrar");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+});
